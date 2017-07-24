@@ -22,7 +22,6 @@ WINDOWHEIGHT = 480
 FPS = 30
 BLANK = None
 MODE = 'medium'
-SHUFFLES = 50
 
 #                 R    G    B
 BLACK =         (  0,   0,   0)
@@ -67,11 +66,9 @@ def main():  #? How do we define the main function?
     SOLVE_SURF, SOLVE_RECT = makeText('Solve',    TEXTCOLOR, TILECOLOR, WINDOWWIDTH - 120, WINDOWHEIGHT - 30)
     SETTINGS_SURF, SETTINGS_RECT = makeText('Settings', TEXTCOLOR, TILECOLOR, 10, WINDOWHEIGHT - 30)
 
-    mainBoard, solutionSeq = generateNewPuzzle(SHUFFLES)
+    mainBoard, solutionSeq = generateNewPuzzle(8)
     SOLVEDBOARD = getStartingBoard() # a solved board is the same as the board in a start state.
     allMoves = [] # list of moves made from the solved configuration
-
-    count = 0
 
     while True: #? How do we make the main game loop?
         slideTo = None # the direction, if any, a tile should slide
@@ -79,7 +76,7 @@ def main():  #? How do we define the main function?
         if mainBoard == SOLVEDBOARD:  #? How do we check if the board has been solved?
             msg = 'Solved!'
 
-        drawBoard(mainBoard, msg, count)
+        drawBoard(mainBoard, msg)
 
         checkForQuit()
         for event in pygame.event.get(): # event handling loop
@@ -90,25 +87,21 @@ def main():  #? How do we define the main function?
                     # check if the user clicked on an option button
                     if RESET_RECT.collidepoint(event.pos):
                         resetAnimation(mainBoard, allMoves) # clicked on Reset button
-			count = 0
                         allMoves = []
                     elif NEW_RECT.collidepoint(event.pos):
-                        mainBoard, solutionSeq = generateNewPuzzle(SHUFFLES) # clicked on New Game button
-                        count = 0
+                        mainBoard, solutionSeq = generateNewPuzzle(80) # clicked on New Game button
                         allMoves = []
                     elif SOLVE_RECT.collidepoint(event.pos): #? What keyword goes here?
                         resetAnimation(mainBoard, solutionSeq + allMoves) # clicked on Solve button
                         allMoves = []
-                        count = 0
                     elif SETTINGS_RECT.collidepoint(event.pos):
 			modeChanged = showSettingsScreen()
 			if modeChanged:
 			    DISPLAYSURF.fill(BGCOLOR)
 			    XMARGIN = int((WINDOWWIDTH - (TILESIZE * BOARDWIDTH + (BOARDWIDTH - 1))) / 2)
                             YMARGIN = int((WINDOWHEIGHT - (TILESIZE * BOARDHEIGHT + (BOARDHEIGHT - 1))) / 2)
-                            mainBoard, solutionSeq = generateNewPuzzle(SHUFFLES)
-                            count = 0
-			    drawBoard(mainBoard, msg, count)
+                            mainBoard, solutionSeq = generateNewPuzzle(80)
+			    drawBoard(mainBoard, msg)
 			    pygame.display.update()
 			    
 			    
@@ -138,19 +131,12 @@ def main():  #? How do we define the main function?
 		#? What direction & letter should replace the sets of '???' above?
 
         if slideTo:
-            slideAnimation(mainBoard, slideTo, 'Click tile or press arrow keys to slide.', 8, count) # show slide on screen
+            slideAnimation(mainBoard, slideTo, 'Click tile or press arrow keys to slide.', 8) # show slide on screen
             makeMove(mainBoard, slideTo)
-            count = count + 1
             allMoves.append(slideTo) # record the slide
         pygame.display.update() #? How do we update the screen?
         FPSCLOCK.tick(FPS)
 
-def drawCount(count):
-    countFont = pygame.font.Font('freesansbold.ttf', 40)
-    countSurf = countFont.render('Moves: %d' % (count), True, TEXTCOLOR)
-    countRect = countSurf.get_rect()
-    countRect.topleft = (400, 10)
-    DISPLAYSURF.blit(countSurf, countRect)
 
 def terminate():
     pygame.quit()
@@ -269,9 +255,8 @@ def makeText(text, color, bgcolor, top, left):
     return (textSurf, textRect)
 
 
-def drawBoard(board, message, count):
+def drawBoard(board, message):
     DISPLAYSURF.fill(BGCOLOR)  #? What did we call our background color?
-    drawCount(count)
     if message:
         textSurf, textRect = makeText(message, MESSAGECOLOR, BGCOLOR, 5, 5)
         DISPLAYSURF.blit(textSurf, textRect)
@@ -292,7 +277,7 @@ def drawBoard(board, message, count):
     DISPLAYSURF.blit(SETTINGS_SURF, SETTINGS_RECT)
 
 
-def slideAnimation(board, direction, message, animationSpeed, count):
+def slideAnimation(board, direction, message, animationSpeed):
     # Note: This function does not check if the move is valid.
 
     blankx, blanky = getBlankPosition(board)
@@ -311,7 +296,7 @@ def slideAnimation(board, direction, message, animationSpeed, count):
         movey = blanky
 
     # prepare the base surface
-    drawBoard(board, message, count)
+    drawBoard(board, message)
     baseSurf = DISPLAYSURF.copy()
     # draw a blank space over the moving tile on the baseSurf Surface.
     moveLeft, moveTop = getLeftTopOfTile(movex, movey)
@@ -339,13 +324,13 @@ def generateNewPuzzle(numSlides):
     # animate these moves).
     sequence = []
     board = getStartingBoard()
-    drawBoard(board, '',0)
+    drawBoard(board, '')
     pygame.display.update()
     pygame.time.wait(500) #? How can we pause for 500 milliseconds?
     lastMove = None
     for i in range(numSlides):
         move = getRandomMove(board, lastMove)
-        slideAnimation(board, move, 'Generating new puzzle...', int(TILESIZE / 3), 0)
+        slideAnimation(board, move, 'Generating new puzzle...', animationSpeed=int(TILESIZE / 3))
         makeMove(board, move)
         sequence.append(move)
         lastMove = move
@@ -366,12 +351,11 @@ def resetAnimation(board, allMoves):
             oppositeMove = LEFT #? What is the opposite of RIGHT?
         elif move == LEFT:
             oppositeMove = RIGHT #? What is the opposite of LEFT?
-        slideAnimation(board, oppositeMove, '', int(TILESIZE / 2), 0)
+        slideAnimation(board, oppositeMove, '', animationSpeed=int(TILESIZE / 2))
         makeMove(board, oppositeMove)
 
 def showSettingsScreen():
     origMode = MODE
-    origShuffles = SHUFFLES
     screenNeedsRedraw = True
 
     while True:
@@ -390,20 +374,6 @@ def showSettingsScreen():
 		mediumSurf, mediumRect = makeText("Medium", TEXTCOLOR, BGCOLOR, 210, 300)
 		largeSurf, largeRect = makeText("Large", HIGHLIGHTTEXTCOLOR, BGCOLOR, 210, 350) 
 	    backSurf, backRect = makeText("< Back to Game", TEXTCOLOR, BGCOLOR, 350, 400)    
-
-	    shuffleSurf, shuffleRect = makeText("Number of Shuffles: ", TEXTCOLOR, BGCOLOR, 10, 10)
-            if SHUFFLES==25:
-		easySurf, easyRect = makeText("25", HIGHLIGHTTEXTCOLOR, BGCOLOR, 50, 50)
-		regularSurf, regularRect = makeText("50", TEXTCOLOR, BGCOLOR, 200, 50)
-		hardSurf, hardRect = makeText("100", TEXTCOLOR, BGCOLOR, 350, 50)
-            elif SHUFFLES==50:
-		easySurf, easyRect = makeText("25", TEXTCOLOR, BGCOLOR, 50, 50)
-		regularSurf, regularRect = makeText("50", HIGHLIGHTTEXTCOLOR, BGCOLOR, 200, 50)
-		hardSurf, hardRect = makeText("100", TEXTCOLOR, BGCOLOR, 350, 50) 
-            elif SHUFFLES==100:
-		easySurf, easyRect = makeText("25", TEXTCOLOR, BGCOLOR, 50, 50)
-		regularSurf, regularRect = makeText("50", TEXTCOLOR, BGCOLOR, 200, 50)
-		hardSurf, hardRect = makeText("100", HIGHLIGHTTEXTCOLOR, BGCOLOR, 350, 50) 
 	    
 	    DISPLAYSURF.fill(BGCOLOR)
             DISPLAYSURF.blit(boardSizeSurf, boardSizeRect)
@@ -411,10 +381,6 @@ def showSettingsScreen():
             DISPLAYSURF.blit(mediumSurf, mediumRect)
             DISPLAYSURF.blit(largeSurf, largeRect)
             DISPLAYSURF.blit(backSurf, backRect)
-            DISPLAYSURF.blit(easySurf, easyRect)
-            DISPLAYSURF.blit(regularSurf, regularRect)
-            DISPLAYSURF.blit(hardSurf, hardRect)
-            DISPLAYSURF.blit(shuffleSurf, shuffleRect)
 
 	    pygame.display.update()
 
@@ -436,27 +402,11 @@ def showSettingsScreen():
 		    setMode('medium')
 		elif largeRect.collidepoint(mousex, mousey):
 		    setMode('large')
-		elif easyRect.collidepoint(mousex, mousey):
-		    setShuffles(25)
-		elif regularRect.collidepoint(mousex, mousey):
-		    setShuffles(50)
-		elif hardRect.collidepoint(mousex, mousey):
-		    setShuffles(100)
 		elif backRect.collidepoint(mousex, mousey):
-		    if MODE == origMode and SHUFFLES == origShuffles:
+		    if MODE == origMode:
 			return False
 		    else:
 			return True
-
-def setShuffles(numOfShuffles):
-    global SHUFFLES
-
-    if numOfShuffles == 25:
-	SHUFFLES = 25
-    elif numOfShuffles == 50:
-        SHUFFLES = 50
-    else:
-	SHUFFLES = 100
 
 def setMode(mode):
     global MODE, BOARDWIDTH, BOARDHEIGHT
